@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlmodel import Session, select
 from app.models.database import get_session
 from app.models.schemas import User, UserRole, Embedding
+from app.api.deps import get_current_user
 from app.services.face_recognition import face_service
 from typing import List
 import pandas as pd
@@ -13,14 +14,23 @@ import os
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("/", response_model=User)
-def create_user(user: User, session: Session = Depends(get_session)):
+def create_user(
+    user: User, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can create users")
     session.add(user)
     session.commit()
     session.refresh(user)
     return user
 
 @router.get("/", response_model=List[User])
-def read_users(session: Session = Depends(get_session)):
+def read_users(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
     users = session.exec(select(User)).all()
     return users
 
@@ -28,7 +38,8 @@ def read_users(session: Session = Depends(get_session)):
 async def enroll_user_face(
     user_id: int,
     file: UploadFile = File(...),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
     try:
         # 1. Read Image
@@ -79,8 +90,11 @@ async def enroll_user_face(
 @router.post("/bulk-upload")
 async def bulk_upload_users(
     file: UploadFile = File(...), 
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can bulk upload users")
     try:
         contents = await file.read()
         if file.filename.endswith('.csv'):
@@ -106,4 +120,11 @@ async def bulk_upload_users(
         return {"message": f"Successfully added {users_added} users"}
     except Exception as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+from fastapi.responses import FileResponse
+
+@router.get("/face-image")
+def get_face_image(path: str):
+    """Serves a face image from the local filesystem."""
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(path)

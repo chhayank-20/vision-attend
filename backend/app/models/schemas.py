@@ -53,3 +53,44 @@ class AttendanceLog(SQLModel, table=True):
     
     user: User = Relationship(back_populates="logs")
     camera: Camera = Relationship(back_populates="logs")
+
+class SystemSettings(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_name: str = Field(default="VisionAttend")
+    late_threshold_minutes: int = Field(default=15)
+    office_start_time: str = Field(default="09:00")
+    office_end_time: str = Field(default="18:00")
+    
+    # SMTP Settings
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_pass: Optional[str] = None
+    sender_email: Optional[str] = None
+    
+    # Remote Enrollment
+    allow_remote_enroll: bool = Field(default=True)
+    require_approval: bool = Field(default=True)
+
+class SystemSettingsUpdate(SQLModel):
+    org_name: Optional[str] = None
+    late_threshold_minutes: Optional[int] = None
+    office_start_time: Optional[str] = None
+    office_end_time: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_pass: Optional[str] = None
+    sender_email: Optional[str] = None
+    allow_remote_enroll: Optional[bool] = None
+    require_approval: Optional[bool] = None
+
+class EnrollmentRequest(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: str
+    name: str
+    email: str
+    department: str
+    image_path: str
+    status: str = Field(default="pending") # pending, approved, rejected
+    created_at: datetime = Field(default_factory=datetime.utcnow)

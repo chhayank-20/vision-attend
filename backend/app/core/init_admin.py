@@ -19,3 +19,19 @@ def create_initial_admin():
             session.add(admin_user)
             session.commit()
             print("👤 Initial Admin Created: ID: admin | Pass: admin123")
+
+def create_initial_settings():
+    """Creates default system settings if none exist."""
+    from app.models.schemas import SystemSettings
+    with Session(engine) as session:
+        settings = session.exec(select(SystemSettings)).first()
+        if not settings:
+            default_settings = SystemSettings(
+                org_name="VisionAttend",
+                late_threshold_minutes=15,
+                office_start_time="09:00",
+                office_end_time="18:00"
+            )
+            session.add(default_settings)
+            session.commit()
+            print("⚙️ Default System Settings Initialized.")

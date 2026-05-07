@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 from app.models.database import get_session
-from app.models.schemas import Camera, CameraUpdate
+from app.models.schemas import Camera, CameraUpdate, UserRole
+from app.api.deps import get_current_user
 from app.services.camera_manager import camera_manager
 from typing import List
 import cv2
@@ -12,7 +13,13 @@ import json
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 
 @router.post("/", response_model=Camera)
-def create_camera(camera: Camera, session: Session = Depends(get_session)):
+def create_camera(
+    camera: Camera, 
+    session: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can add cameras")
     session.add(camera)
     session.commit()
     session.refresh(camera)
@@ -20,12 +27,22 @@ def create_camera(camera: Camera, session: Session = Depends(get_session)):
     return camera
 
 @router.get("/", response_model=List[Camera])
-def read_cameras(session: Session = Depends(get_session)):
+def read_cameras(
+    session: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user)
+):
     cameras = session.exec(select(Camera)).all()
     return cameras
 
 @router.patch("/{camera_id}", response_model=Camera)
-def update_camera(camera_id: int, camera_update: CameraUpdate, session: Session = Depends(get_session)):
+def update_camera(
+    camera_id: int, 
+    camera_update: CameraUpdate, 
+    session: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can update cameras")
     camera = session.get(Camera, camera_id)
     if not camera:
         raise HTTPException(status_code=404, detail="Camera not found")

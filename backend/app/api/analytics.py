@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlmodel import Session, select, func
 from app.models.database import get_session
-from app.models.schemas import User, AttendanceLog, Camera
+from app.models.schemas import User, AttendanceLog, Camera, UserRole
+from app.api.deps import get_current_user
 from app.services.camera_manager import camera_manager
 from datetime import datetime, time as dt_time
 import pandas as pd
@@ -17,7 +18,10 @@ from reportlab.lib import colors
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 @router.get("/summary")
-def get_summary(session: Session = Depends(get_session)):
+def get_summary(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
     # ... (existing logic remains)
     today = datetime.utcnow().date()
     start_of_day = datetime.combine(today, dt_time.min)
@@ -42,14 +46,17 @@ def get_summary(session: Session = Depends(get_session)):
     }
 
 @router.get("/recent-logs")
-def get_recent_logs(session: Session = Depends(get_session)):
-    # ... (existing logic remains)
+def get_recent_logs(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Retrieves the most recent attendance logs with joined user and camera data."""
     statement = (
         select(AttendanceLog, User.name.label("user_name"), Camera.name.label("camera_name"))
         .join(User, AttendanceLog.user_id == User.id)
         .join(Camera, AttendanceLog.camera_id == Camera.id)
         .order_by(AttendanceLog.timestamp.desc())
-        .limit(10)
+        .limit(20)
     )
     results = session.exec(statement).all()
     logs = []
@@ -63,13 +70,45 @@ def get_recent_logs(session: Session = Depends(get_session)):
         })
     return logs
 
+@router.get("/trends")
+def get_trends(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Retrieves attendance trends for the last 7 days."""
+    from datetime import timedelta
+    now = datetime.utcnow()
+    seven_days_ago = now - timedelta(days=7)
+    
+    logs = session.exec(
+        select(AttendanceLog)
+        .where(AttendanceLog.timestamp >= seven_days_ago)
+    ).all()
+    
+    # Simple aggregation by date
+    trends = {}
+    for i in range(7):
+        date_str = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+        trends[date_str] = {"present": 0, "late": 0}
+        
+    for log in logs:
+        date_str = log.timestamp.strftime("%Y-%m-%d")
+        if date_str in trends:
+            if log.status == "IN":
+                trends[date_str]["present"] += 1
+                
+    return [{"date": k, **v} for k, v in sorted(trends.items())]
+
 @router.get("/export")
 def export_reports(
     start_date: str, 
     end_date: str, 
     format: str = "csv", 
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can export reports")
     try:
         start_dt = datetime.fromisoformat(start_date)
         end_dt = datetime.fromisoformat(end_date).replace(hour=23, minute=59, second=59)

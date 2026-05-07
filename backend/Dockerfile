@@ -1,10 +1,11 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
 # Install system dependencies for OpenCV and ML libraries
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
+    libglx-mesa0 \
     libglib2.0-0 \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -22,4 +23,5 @@ COPY . .
 EXPOSE 8000
 
 # Start the application using uvicorn
+# Start the application using uv run to ensure the virtualenv is correctly managed
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

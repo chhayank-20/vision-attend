@@ -9,9 +9,19 @@ import { Login } from './pages/Login'
 import { useAuthStore } from './store/useAuthStore'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { Button } from './ui/Button'
+import { Button } from './components/ui/Button'
+
+import { SettingsPage } from './pages/SettingsPage'
+import { RemoteEnroll } from './pages/RemoteEnroll'
+import { EnrollmentManager } from './components/EnrollmentManager'
+import { AttendanceTrendChart } from './components/AttendanceTrendChart'
 
 function App() {
+  // Simple routing for the public enrollment portal
+  if (window.location.pathname === '/enroll') {
+    return <RemoteEnroll />
+  }
+
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedCamera, setSelectedCamera] = useState(null)
   const { user, token, logout } = useAuthStore()
@@ -152,9 +162,7 @@ function App() {
                 <div className="lg:col-span-2">
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 min-h-[400px]">
                     <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest mb-6">Attendance Trends</h3>
-                    <div className="flex items-center justify-center h-64 text-slate-300">
-                        <p className="text-sm font-medium italic">Chart visualization will appear here.</p>
-                    </div>
+                    <AttendanceTrendChart />
                   </div>
                 </div>
                 
@@ -262,7 +270,18 @@ function App() {
             </div>
           )}
 
-          {(activeTab !== 'dashboard' && activeTab !== 'users' && activeTab !== 'cameras' && activeTab !== 'reports') && (
+          {activeTab === 'settings' && (
+            <div className="space-y-8">
+              <SettingsPage />
+              
+              <div className="pt-8">
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-widest mb-6 ml-1">Enrollment Requests</h3>
+                <EnrollmentManager />
+              </div>
+            </div>
+          )}
+
+          {(activeTab !== 'dashboard' && activeTab !== 'users' && activeTab !== 'cameras' && activeTab !== 'reports' && activeTab !== 'settings') && (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 shadow-sm flex items-center justify-center text-slate-300">
               <div className="text-center">
                 <p className="text-xl font-medium">Coming Soon</p>

@@ -3,10 +3,9 @@ services:
     build: ./backend
     container_name: vision-attend-backend
     volumes:
-      - ./backend/vision_attend.db:/app/vision_attend.db
       - ./data:/app/data
     environment:
-      - DATABASE_URL=sqlite:///./vision_attend.db
+      - DATABASE_URL=sqlite:///./data/vision_attend.db
       - SECRET_KEY=prod-secret-key-please-change
     ports:
       - "8000:8000"
