@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from sqlmodel import Session, select
 from app.models.database import get_session
 from app.models.schemas import EnrollmentRequest, User, UserRole, SystemSettings, Embedding
 from app.api.deps import get_current_user
+from app.core.limiter import limiter
 import shutil
 import os
 import uuid
@@ -14,7 +15,9 @@ UPLOAD_DIR = "data/enrollment_requests"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/submit")
+@limiter.limit("5/minute")
 async def submit_enrollment(
+    request: Request,
     employee_id: str = Form(...),
     name: str = Form(...),
     email: str = Form(...),
@@ -28,10 +31,14 @@ async def submit_enrollment(
     if not settings or not settings.allow_remote_enroll:
         raise HTTPException(status_code=403, detail="Remote enrollment is currently disabled")
 
-    # Check if user exists
-    user = session.exec(select(User).where(User.employee_id == employee_id)).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Employee ID not found in system")
+    # Check if a pending request already exists for this employee ID to prevent spam
+    existing_req = session.exec(
+        select(EnrollmentRequest)
+        .where(EnrollmentRequest.employee_id == employee_id)
+        .where(EnrollmentRequest.status == "pending")
+    ).first()
+    if existing_req:
+        raise HTTPException(status_code=400, detail="A pending enrollment request already exists for this Employee ID.")
 
     # Save file
     file_ext = os.path.splitext(file.filename)[1]
@@ -54,7 +61,7 @@ async def submit_enrollment(
 @router.get("/requests", response_model=List[EnrollmentRequest])
 def list_requests(
     session: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Admin endpoint to view pending requests."""
     if current_user.role != UserRole.ADMIN:
@@ -66,7 +73,7 @@ def list_requests(
 def approve_request(
     request_id: int,
     session: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Admin endpoint to approve and process enrollment."""
     if current_user.role != UserRole.ADMIN:
@@ -78,7 +85,16 @@ def approve_request(
     
     user = session.exec(select(User).where(User.employee_id == req.employee_id)).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User no longer exists")
+        # Auto-create user if they don't exist yet (Self-Registration)
+        user = User(
+            name=req.name,
+            employee_id=req.employee_id,
+            email=req.email,
+            department=req.department,
+            role=UserRole.EMPLOYEE
+        )
+        session.add(user)
+        session.flush() # Get user.id before commit
 
     # Process face embedding
     import cv2
@@ -120,7 +136,7 @@ def approve_request(
 def reject_request(
     request_id: int,
     session: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Admin endpoint to reject enrollment."""
     if current_user.role != UserRole.ADMIN:

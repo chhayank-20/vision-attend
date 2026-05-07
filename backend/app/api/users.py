@@ -120,6 +120,7 @@ async def bulk_upload_users(
         return {"message": f"Successfully added {users_added} users"}
     except Exception as e:
         session.rollback()
+        
 from fastapi.responses import FileResponse
 
 @router.get("/face-image")

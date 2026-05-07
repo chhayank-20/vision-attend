@@ -4,8 +4,11 @@ from app.core.config import settings
 from app.api import users, cameras, auth, analytics, settings as settings_api, enrollment
 from app.services.index_sync import start_vision_engine
 from app.core.init_admin import create_initial_admin, create_initial_settings
+from app.core.limiter import limiter, _rate_limit_exceeded_handler, RateLimitExceeded
 
 app = FastAPI(title=settings.PROJECT_NAME)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")

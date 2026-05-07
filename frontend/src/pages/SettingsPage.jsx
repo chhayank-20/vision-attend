@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Save, Mail, Clock, Building, ShieldCheck, UserCheck } from 'lucide-react'
 import { Button } from '../components/ui/Button'
+import { toast } from 'sonner'
 import axios from 'axios'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -38,7 +39,7 @@ export function SettingsPage() {
     mutationFn: (newSettings) => axios.patch('/api/settings/', newSettings),
     onSuccess: () => {
       queryClient.invalidateQueries(['settings'])
-      alert('Settings updated successfully!')
+      toast.success('Settings updated successfully!')
     }
   })
 
@@ -218,9 +219,9 @@ export function SettingsPage() {
             onClick={async () => {
               try {
                 const res = await axios.post('/api/settings/test-email')
-                alert(res.data.message)
+                toast.success(res.data.message)
               } catch (err) {
-                alert(err.response?.data?.detail || 'Failed to test email')
+                toast.error(err.response?.data?.detail || 'Failed to test email')
               }
             }}
           >

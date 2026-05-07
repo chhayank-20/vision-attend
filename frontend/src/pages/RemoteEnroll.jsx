@@ -3,6 +3,8 @@ import { Camera, CheckCircle2, User, Mail, Briefcase, Hash, Send } from 'lucide-
 import { Button } from '../components/ui/Button'
 import axios from 'axios'
 import { FaceCapture } from '../components/FaceCapture'
+import { toast } from 'sonner'
+import { base64ToBlob } from '../utils/file_utils'
 
 export function RemoteEnroll() {
   const [step, setStep] = useState(1) // 1: Info, 2: Capture, 3: Success
@@ -35,12 +37,13 @@ export function RemoteEnroll() {
       data.append('email', formData.email)
       data.append('department', formData.department)
       
-      // Convert base64 to blob
-      const res = await fetch(capturedImage)
-      const blob = await res.blob()
+      // Convert base64 to blob using robust utility
+      const blob = base64ToBlob(capturedImage)
+      if (!blob) throw new Error("Failed to process image capture")
       data.append('file', blob, 'enrollment.jpg')
 
       await axios.post('/api/enrollment/submit', data)
+      toast.success("Enrollment request submitted!")
       setStep(3)
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to submit enrollment. Please check your ID.')

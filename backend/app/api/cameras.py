@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 from app.models.database import get_session
-from app.models.schemas import Camera, CameraUpdate, UserRole
+from app.models.schemas import Camera, CameraUpdate, UserRole, User
 from app.api.deps import get_current_user
 from app.services.camera_manager import camera_manager
 from typing import List
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/cameras", tags=["cameras"])
 def create_camera(
     camera: Camera, 
     session: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admins can add cameras")
@@ -29,7 +29,7 @@ def create_camera(
 @router.get("/", response_model=List[Camera])
 def read_cameras(
     session: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     cameras = session.exec(select(Camera)).all()
     return cameras
@@ -39,7 +39,7 @@ def update_camera(
     camera_id: int, 
     camera_update: CameraUpdate, 
     session: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Only admins can update cameras")

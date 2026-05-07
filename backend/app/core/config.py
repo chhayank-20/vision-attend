@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-it"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ENCRYPTION_KEY: str = "32-byte-base64-key-placeholder="
     
     # AWS SES Settings (Optional initially)
     AWS_ACCESS_KEY_ID: Optional[str] = None

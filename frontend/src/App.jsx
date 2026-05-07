@@ -15,11 +15,17 @@ import { SettingsPage } from './pages/SettingsPage'
 import { RemoteEnroll } from './pages/RemoteEnroll'
 import { EnrollmentManager } from './components/EnrollmentManager'
 import { AttendanceTrendChart } from './components/AttendanceTrendChart'
+import { Toaster } from 'sonner'
 
 function App() {
   // Simple routing for the public enrollment portal
   if (window.location.pathname === '/enroll') {
-    return <RemoteEnroll />
+    return (
+      <>
+        <Toaster position="top-center" richColors />
+        <RemoteEnroll />
+      </>
+    )
   }
 
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -78,6 +84,7 @@ function App() {
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
+      <Toaster position="top-right" richColors />
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
         <div className="p-6">
