@@ -23,6 +23,7 @@ dependencies = [
     "torchvision",
     "slowapi>=0.1.9",
     "uvicorn>=0.46.0",
+    "gunicorn>=26.0.0",
 ]
 
 [[tool.uv.index]]
