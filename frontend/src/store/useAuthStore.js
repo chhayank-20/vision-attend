@@ -9,6 +9,6 @@ export const useAuthStore = create(
       setAuth: (user, token) => set({ user, token }),
       logout: () => set({ user: null, token: null }),
     }),
-    { name: 'vision-auth' }
-  )
+    { name: 'vision-auth' },
+  ),
 )

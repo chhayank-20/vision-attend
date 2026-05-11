@@ -16,12 +16,12 @@ export function Login() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    
+
     try {
       const formData = new FormData()
       formData.append('username', username)
       formData.append('password', password)
-      
+
       const res = await axios.post('/api/auth/login', formData)
       setAuth(res.data.user, res.data.access_token)
     } catch (err) {
@@ -38,28 +38,36 @@ export function Login() {
           <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3 shadow-lg">
             <ShieldCheck size={32} />
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">VisionAttend</h1>
-          <p className="text-slate-400 mt-2 font-medium">Enterprise Facial Recognition</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+            VisionAttend
+          </h1>
+          <p className="text-slate-400 mt-2 font-medium">
+            Enterprise Facial Recognition
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 ml-1">Employee ID</label>
-            <Input 
-              placeholder="e.g. admin" 
-              value={username} 
+            <label className="text-sm font-bold text-slate-700 ml-1">
+              Employee ID
+            </label>
+            <Input
+              placeholder="e.g. admin"
+              value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="rounded-xl h-12"
               required
             />
           </div>
-          
+
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 ml-1">Password</label>
-            <Input 
-              type="password" 
-              placeholder="••••••••" 
-              value={password} 
+            <label className="text-sm font-bold text-slate-700 ml-1">
+              Password
+            </label>
+            <Input
+              type="password"
+              placeholder="••••••••"
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="rounded-xl h-12"
               required
@@ -72,7 +80,11 @@ export function Login() {
             </div>
           )}
 
-          <Button type="submit" className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-lg font-bold" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-lg font-bold"
+            disabled={loading}
+          >
             {loading ? <Loader2 className="animate-spin mr-2" /> : 'Sign In'}
           </Button>
         </form>
