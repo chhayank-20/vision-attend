@@ -15,8 +15,7 @@ services:
       - key: WEB_CONCURRENCY
         value: 1
     buildCommand: |
-      curl -LsSf https://astral.sh/uv/install.sh | sh
-      source $HOME/.cargo/env
+      pip install uv
       cd backend && uv sync --frozen --no-dev
     startCommand: cd backend && .venv/bin/gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     plan: free
