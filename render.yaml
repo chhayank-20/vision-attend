@@ -29,10 +29,7 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          name: vision-attend-backend
-          type: web
-          property: url
+        value: https://vision-attend-backend.onrender.com
 
 databases:
   - name: vision-attend-db
