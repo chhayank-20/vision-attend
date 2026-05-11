@@ -22,9 +22,8 @@ services:
     plan: free
 
   # 2. Frontend Static Site
-  - type: static
+  - type: static_site
     name: vision-attend-frontend
-    runtime: web
     buildCommand: cd frontend && pnpm install && pnpm run build
     publishPath: frontend/dist
     envVars:
@@ -33,7 +32,6 @@ services:
           name: vision-attend-backend
           type: web
           property: url
-    plan: free
 
 databases:
   - name: vision-attend-db
