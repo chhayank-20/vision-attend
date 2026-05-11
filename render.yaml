@@ -22,10 +22,11 @@ services:
     plan: free
 
   # 2. Frontend Static Site
-  - type: static_site
+  - type: web
     name: vision-attend-frontend
+    runtime: static
     buildCommand: cd frontend && pnpm install && pnpm run build
-    publishPath: frontend/dist
+    staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
         fromService:
