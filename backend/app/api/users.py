@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, FileResponse
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 from app.models.database import get_session
 from app.models.schemas import User, UserRole, Embedding
