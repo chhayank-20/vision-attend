@@ -9,18 +9,26 @@ logger = logging.getLogger("vision-attend.face")
 
 class FaceRecognitionService:
     def __init__(self):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.mtcnn = None
+        self.model = None
+        # FAISS Index (512-dim for InceptionResnetV1)
+        self.index = faiss.IndexFlatL2(512)
+        self.user_ids = []  # Maps index position to user_id
+        self._initialized = False
+
+    def initialize(self):
+        """Loads models if not already initialized. Can be slow due to weight downloads."""
+        if self._initialized:
+            return
+        
         try:
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             logger.info(f"Initializing FaceRecognitionService on {self.device}")
-            
             # Keep MTCNN and Resnet instances
             self.mtcnn = MTCNN(keep_all=False, device=self.device)
             self.model = InceptionResnetV1(pretrained="vggface2").eval().to(self.device)
-            
-            # FAISS Index (512-dim for InceptionResnetV1)
-            self.index = faiss.IndexFlatL2(512)
-            self.user_ids = []  # Maps index position to user_id
             logger.info("FaceRecognitionService initialized successfully")
+            self._initialized = True
         except Exception as e:
             logger.error(f"Failed to initialize FaceRecognitionService: {e}")
             raise
@@ -28,6 +36,9 @@ class FaceRecognitionService:
     @torch.inference_mode()
     def get_embedding(self, frame_rgb):
         """Extracts embedding from a single RGB frame."""
+        if not self._initialized:
+            self.initialize()
+            
         try:
             img = Image.fromarray(frame_rgb)
             face = self.mtcnn(img)
@@ -76,4 +87,8 @@ class FaceRecognitionService:
             return None, 1.0
 
 # Singleton instance
-face_service = FaceRecognitionService()
+_face_service = FaceRecognitionService()
+face_service = _face_service
+
+def get_face_service():
+    return _face_service

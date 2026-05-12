@@ -51,6 +51,17 @@ app.include_router(settings_api.router, prefix="/api")
 app.include_router(enrollment.router, prefix="/api")
 
 
+import threading
+from app.services.face_recognition import get_face_service
+
+def background_init():
+    try:
+        logger.info("🧵 Background: Initializing FaceRecognitionService...")
+        get_face_service().initialize()
+        logger.info("🧵 Background: FaceRecognitionService ready.")
+    except Exception as e:
+        logger.error(f"🧵 Background: FaceRecognitionService initialization failed: {e}")
+
 @app.on_event("startup")
 def on_startup():
     logger.info("🚀 Starting VisionAttend Engine...")
@@ -58,12 +69,16 @@ def on_startup():
         init_db()
         create_initial_admin()
         create_initial_settings()
+        
+        # Start heavy model loading in background
+        threading.Thread(target=background_init, daemon=True).start()
+        
+        # Start vision engine (FAISS sync and camera workers)
         start_vision_engine()
-        logger.info("✅ Startup complete")
+        
+        logger.info("✅ Startup complete (Background tasks still running)")
     except Exception as e:
         logger.error(f"❌ Startup failed: {e}")
-        # In production, we might want to continue or raise
-        # For now, we log the error
 
 
 @app.get("/")
