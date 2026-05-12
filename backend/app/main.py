@@ -13,7 +13,9 @@ from app.api import (
 )
 from app.services.index_sync import start_vision_engine
 from app.core.init_admin import create_initial_admin, create_initial_settings
-from app.core.limiter import limiter, _rate_limit_exceeded_handler, RateLimitExceeded
+from app.core.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 # Configure Logging
 logging.basicConfig(
