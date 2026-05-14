@@ -8,10 +8,8 @@ import base64
 try:
     cipher_suite = Fernet(settings.ENCRYPTION_KEY.encode())
 except Exception:
-    # Fallback for dev if key is invalid/placeholder
-    # WARNING: This means data encrypted with this fallback won't be decryptable after restart
-    # if the placeholder is still used. User should set a real key in .env
-    fallback_key = base64.urlsafe_b64encode(b"a-temporary-dev-key-32-chars-long!")
+    # Fallback for dev: exactly 32 bytes (256 bits)
+    fallback_key = base64.urlsafe_b64encode(b"vision-attend-32-char-key-012345")
     cipher_suite = Fernet(fallback_key)
 
 

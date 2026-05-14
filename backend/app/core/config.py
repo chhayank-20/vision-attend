@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_REGION: str = "us-east-1"
     SENDER_EMAIL: Optional[str] = None
+    LOG_LEVEL: str = "INFO"
 
     model_config = SettingsConfigDict(env_file=".env")
 

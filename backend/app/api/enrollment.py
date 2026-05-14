@@ -145,8 +145,11 @@ def approve_request(
 
         # Sync FAISS
         from app.services.index_sync import sync_faiss_index
-
         sync_faiss_index()
+
+        # Notify User
+        from app.services.email_service import email_service
+        email_service.send_welcome_email(req.name, req.email)
 
         return {"message": "Enrollment approved and face data synchronized"}
     except Exception as e:
@@ -172,4 +175,9 @@ def reject_request(
     req.status = "rejected"
     session.add(req)
     session.commit()
+
+    # Notify User
+    from app.services.email_service import email_service
+    email_service.send_rejection_email(req.name, req.email)
+
     return {"message": "Request rejected"}

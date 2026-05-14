@@ -26,7 +26,8 @@ import { SettingsPage } from './pages/SettingsPage'
 import { RemoteEnroll } from './pages/RemoteEnroll'
 import { EnrollmentManager } from './components/EnrollmentManager'
 import { AttendanceTrendChart } from './components/AttendanceTrendChart'
-import { Toaster } from 'sonner'
+import { EmployeePortal } from './pages/EmployeePortal'
+import { Toaster, toast } from 'sonner'
 
 function App() {
   // Simple routing for the public enrollment portal
@@ -35,6 +36,15 @@ function App() {
       <>
         <Toaster position="top-center" richColors />
         <RemoteEnroll />
+      </>
+    )
+  }
+
+  if (window.location.pathname === '/portal') {
+    return (
+      <>
+        <Toaster position="top-center" richColors />
+        <EmployeePortal />
       </>
     )
   }
@@ -61,7 +71,7 @@ function App() {
     enabled: !!token,
   })
 
-  const { data: summary } = useQuery({
+  const { data: summary, refetch: refetchSummary } = useQuery({
     queryKey: ['analytics-summary'],
     queryFn: async () => {
       const res = await axios.get('/api/analytics/summary')
@@ -71,7 +81,7 @@ function App() {
     refetchInterval: 5000,
   })
 
-  const { data: recentLogs } = useQuery({
+  const { data: recentLogs, refetch: refetchLogs } = useQuery({
     queryKey: ['recent-logs'],
     queryFn: async () => {
       const res = await axios.get('/api/analytics/recent-logs')
@@ -80,6 +90,37 @@ function App() {
     enabled: !!token && activeTab === 'dashboard',
     refetchInterval: 5000,
   })
+
+  // WebSocket Listener for real-time notifications
+  useEffect(() => {
+    if (!token) return
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${protocol}//${window.location.host}/ws`
+    const ws = new WebSocket(wsUrl)
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      if (data.type === 'RECOGNITION') {
+        toast.success(`${data.user_name} marked ${data.status}`, {
+          description: `At Camera ID: ${data.camera_id}`,
+          icon: data.status === 'IN' ? '✅' : '🚪',
+        })
+        // Also refresh dashboard data
+        refetchSummary?.()
+        refetchLogs?.()
+      }
+    }
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected. Retrying in 5s...')
+      setTimeout(() => {
+        // Simple retry logic would go here if needed
+      }, 5000)
+    }
+
+    return () => ws.close()
+  }, [token])
 
   if (!token) {
     return <Login />

@@ -63,32 +63,18 @@ def test_email(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """Placeholder for SMTP test logic."""
+    """Sends a test email to the current user to verify SMTP settings."""
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    settings = session.exec(select(SystemSettings)).first()
-    if not settings or not settings.smtp_host:
-        return {"message": "SMTP not configured. Please save settings first."}
-
-    try:
-        # Create message
-        msg = MIMEMultipart()
-        msg["From"] = settings.sender_email
-        msg["To"] = current_user.email
-        msg["Subject"] = "VisionAttend SMTP Test"
-
-        body = f"Hello {current_user.name},\n\nThis is a test email from your VisionAttend system. Your SMTP settings are correctly configured!"
-        msg.attach(MIMEText(body, "plain"))
-
-        # Connect and send
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as server:
-            if settings.smtp_user and settings.smtp_pass:
-                real_pass = decrypt_string(settings.smtp_pass)
-                server.starttls()
-                server.login(settings.smtp_user, real_pass)
-            server.send_message(msg)
-
+    from app.services.email_service import email_service
+    
+    subject = "VisionAttend SMTP Test"
+    body = f"Hello {current_user.name},\n\nThis is a test email from your VisionAttend system. Your SMTP settings are correctly configured!"
+    
+    success = email_service.send_email(current_user.email, subject, body)
+    
+    if success:
         return {"message": f"Test email sent successfully to {current_user.email}"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"SMTP Error: {str(e)}")
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send test email. Check server logs for details.")

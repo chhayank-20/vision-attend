@@ -1,9 +1,12 @@
+from loguru import logger
 import cv2
 import threading
 import queue
 import time
 import json
+import asyncio
 from app.services.face_recognition import face_service
+from app.core.websocket import manager
 from app.models.schemas import AttendanceLog, Camera
 from app.models.database import engine
 from sqlmodel import Session, select
@@ -39,17 +42,20 @@ class CameraManager:
                 camera_id, frame = self.processing_queue.get(timeout=1)
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-                embedding = face_service.get_embedding(rgb_frame)
+                embedding = face_service.get_embedding(rgb_frame, check_liveness=True)
                 if embedding is not None:
                     user_id, distance = face_service.search(embedding)
                     if user_id:
+                        logger.info(f"🎯 Match Found: User ID {user_id} (Dist: {distance:.4f}) at Camera {camera_id}")
                         self._handle_recognition(user_id, camera_id)
+                    else:
+                        logger.debug(f"🤔 Unknown face detected at Camera {camera_id} (Dist: {distance:.4f})")
 
                 self.processing_queue.task_done()
             except queue.Empty:
                 continue
             except Exception as e:
-                print(f"❌ Worker Error: {e}")
+                logger.error(f"❌ Worker Error: {e}")
 
     def _handle_recognition(self, user_id, camera_id):
         """Handles the business logic for a recognized user."""
@@ -65,6 +71,11 @@ class CameraManager:
         self.last_seen[key] = now
 
         with Session(engine) as session:
+            # Load user and their last log in one go
+            from app.models.schemas import User
+            user = session.get(User, user_id)
+            if not user: return
+
             last_log = session.exec(
                 select(AttendanceLog)
                 .where(AttendanceLog.user_id == user_id)
@@ -76,7 +87,28 @@ class CameraManager:
             new_log = AttendanceLog(user_id=user_id, camera_id=camera_id, status=status)
             session.add(new_log)
             session.commit()
-            print(f"✅ User {user_id} marked {status} at Camera {camera_id}")
+            logger.success(f"✅ User {user.name} marked {status} at Camera {camera_id}")
+
+            # Broadcast to WebSockets
+            try:
+                # We use the app's event loop which we'll store in main.py
+                from app.main import app
+                loop = getattr(app.state, "main_loop", None)
+                
+                if loop and loop.is_running():
+                    asyncio.run_coroutine_threadsafe(
+                        manager.broadcast({
+                            "type": "RECOGNITION",
+                            "user_id": user_id,
+                            "user_name": user.name,
+                            "camera_id": camera_id,
+                            "status": status,
+                            "timestamp": now.isoformat()
+                        }),
+                        loop
+                    )
+            except Exception as e:
+                print(f"⚠️ WebSocket Broadcast failed: {e}")
 
     def add_camera(self, camera: Camera):
         """Spawns a new capture thread for a camera."""
@@ -98,7 +130,7 @@ class CameraManager:
         )
         self.camera_threads[camera.id] = (thread, stop_event)
         thread.start()
-        print(f"📹 Started Stream for Camera {camera.id}: {camera.name}")
+        logger.info(f"📹 Started Stream for Camera {camera.id}: {camera.name} ({camera.url})")
 
     def stop_camera(self, camera_id):
         """Stops a specific camera thread."""
@@ -130,7 +162,7 @@ class CameraManager:
         while not stop_event.is_set():
             ret, frame = cap.read()
             if not ret:
-                print(f"⚠️ Camera {camera_id} disconnected. Retrying...")
+                logger.warning(f"⚠️ Camera {camera_id} disconnected. Retrying in 5s...")
                 cap.release()
                 time.sleep(5)
                 cap = cv2.VideoCapture(source)

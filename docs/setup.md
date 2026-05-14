@@ -5,76 +5,90 @@ VisionAttend can be deployed using Docker (recommended) or locally for developme
 ## 🐳 Docker Deployment (Recommended)
 
 ### Prerequisites
-
 - Docker & Docker Compose
 - 4GB+ RAM (Vision models are memory-intensive)
+- Python 3.10+ (for local scripts)
 
 ### Steps
-
-1. **Configure SSL**:
-   The system uses Nginx with a self-signed certificate by default. Run the setup script to generate them:
-   ```bash
-   ./setup-ssl.sh
+1. **Environment Variables**:
+   Create a `.env` file in the root directory:
+   ```env
+   SECRET_KEY=your_secret_key_for_jwt
+   ENCRYPTION_KEY=32_byte_base64_key  # Use: openssl rand -base64 32
+   POSTGRES_DB=vision_attend
+   ...
    ```
 2. **Build and Start**:
    ```bash
    docker compose up --build -d
    ```
-3. **Verify**:
-   Check logs to ensure models are loaded correctly:
-   ```bash
-   docker compose logs -f backend
-   ```
+3. **Initial Admin**:
+   The system automatically creates a default admin:
+   - **Email**: `admin@visionattend.com`
+   - **Password**: `admin123` (Change this immediately!)
 
 ---
 
 ## 💻 Local Development Setup
 
-### Backend (Python 3.13)
-
-1. **Install uv**:
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
-2. **Sync Dependencies**:
+### Backend
+1. **Sync Dependencies**:
    ```bash
    cd backend
-   uv sync
+   pip install -r requirements.txt
    ```
-3. **Run Dev Server**:
+2. **Run Dev Server**:
    ```bash
-   uv run uvicorn app.main:app --reload
+   uvicorn app.main:app --reload
    ```
 
-### Frontend (Node.js)
-
-1. **Install pnpm**:
-   ```bash
-   npm install -g pnpm
-   ```
-2. **Install & Run**:
+### Frontend
+1. **Install & Run**:
    ```bash
    cd frontend
-   pnpm install
-   pnpm dev
+   npm install
+   npm run dev
    ```
 
 ---
 
-## 📧 SMTP Configuration
+## 📧 Email & Security Configuration
 
-To enable email notifications:
-
+### SMTP Setup
+To enable enrollment notifications:
 1. Log in as **Admin**.
 2. Go to **Settings**.
-3. Fill in your SMTP Host (e.g., `smtp.gmail.com`), Port (`587`), and credentials.
-4. Click **Test Connection** to verify.
+3. Fill in SMTP Host (e.g., `smtp.gmail.com`), Port (`587`), and credentials.
+4. Click **Test Email** to verify.
 
-## 📲 Remote Enrollment
+### Liveness Tuning
+If you experience frequent false rejections in low-light environments:
+1. Go to **Settings**.
+2. Adjust the **Liveness Threshold** (Default: `0.4`).
+3. Lowering to `0.3` makes it more permissive; raising to `0.6` makes it more secure.
 
-To use remote enrollment:
+---
 
-1. Ensure the backend is accessible via a public IP or tunnel (e.g., ngrok).
-2. Share the `/remote-enroll` link with employees.
-3. Employees submit their face photos via their phones.
-4. Approve the requests in the **Enrollment** tab of the Admin dashboard.
+## 🪵 Logging & Observability
+
+VisionAttend uses **Loguru** for structured logging. You can control the verbosity via the `LOG_LEVEL` environment variable.
+
+- **DEBUG**: Shows granular details (face detection boxes, embedding extraction time, WebSocket heartbeat). Use this for troubleshooting.
+- **INFO** (Default): Logs important events like successful recognitions, camera disconnections, and system startups.
+- **ERROR**: Only logs failures that require immediate attention.
+
+To change the log level:
+- **Local**: Update `LOG_LEVEL` in your `.env` file.
+- **Render**: Update the `LOG_LEVEL` environment variable in the Render Dashboard.
+
+---
+
+## 📲 User Access
+
+### Remote Enrollment
+- Employees can submit their face data at: `https://your-domain.com/enroll`
+- Admins must review and approve these in the **Enrollment** tab.
+
+### Employee Portal
+- Employees can view their own history at: `https://your-domain.com/portal`
+- Search requires only an **Employee ID**. No login required.

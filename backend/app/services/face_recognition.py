@@ -1,11 +1,13 @@
 import torch
 import numpy as np
 import faiss
-import logging
+from loguru import logger
+import cv2
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from PIL import Image
+from app.services.liveness_service import liveness_service
 
-logger = logging.getLogger("vision-attend.face")
+# Using loguru logger directly
 
 class FaceRecognitionService:
     def __init__(self):
@@ -34,18 +36,43 @@ class FaceRecognitionService:
             raise
 
     @torch.inference_mode()
-    def get_embedding(self, frame_rgb):
-        """Extracts embedding from a single RGB frame."""
+    def get_embedding(self, frame_rgb, check_liveness=False):
+        """Extracts embedding from a single RGB frame with optional liveness check."""
         if not self._initialized:
             self.initialize()
             
         try:
             img = Image.fromarray(frame_rgb)
-            face = self.mtcnn(img)
-            if face is not None:
-                # face is [3, 160, 160]
-                embedding = self.model(face.unsqueeze(0).to(self.device))
-                return embedding.detach().cpu().numpy().flatten()
+            # mtcnn.detect returns boxes as [x1, y1, x2, y2]
+            boxes, probs = self.mtcnn.detect(img)
+            
+            if boxes is not None and len(boxes) > 0:
+                logger.debug(f"Detected {len(boxes)} faces with probabilities: {probs}")
+                # Pick the largest face if multiple are detected
+                box = boxes[0]
+                
+                # Perform Liveness Check
+                if check_liveness:
+                    # Convert RGB back to BGR for opencv-based liveness service
+                    frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+                    x1, y1, x2, y2 = map(int, box)
+                    face_box = (x1, y1, x2 - x1, y2 - y1)
+                    
+                    liveness_score = liveness_service.check_liveness(frame_bgr, face_box)
+                    if liveness_score < 0.4: # Configurable threshold
+                        logger.warning(f"Liveness check failed (score: {liveness_score:.2f})")
+                        return None
+
+                # Process the face for embedding
+                # MTCNN(img) detects AND crops/scales, but we already have boxes from detect()
+                # To be consistent with existing logic, we let MTCNN handle the crop again
+                face = self.mtcnn(img)
+                if face is not None:
+                    import time
+                    start_time = time.time()
+                    embedding = self.model(face.unsqueeze(0).to(self.device))
+                    logger.debug(f"Embedding extraction took {(time.time() - start_time)*1000:.2f}ms")
+                    return embedding.detach().cpu().numpy().flatten()
             return None
         except Exception as e:
             logger.error(f"Error extracting embedding: {e}")

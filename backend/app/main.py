@@ -1,6 +1,7 @@
-import logging
-from fastapi import FastAPI, Request
+from loguru import logger
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.websocket import manager
 from app.models.database import init_db
 from app.core.config import settings
 from app.api import (
@@ -11,18 +12,14 @@ from app.api import (
     settings as settings_api,
     enrollment,
 )
+from app.core.logging import logger as _logger # Initializes setup_logging
 from app.services.index_sync import start_vision_engine
 from app.core.init_admin import create_initial_admin, create_initial_settings
 from app.core.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 
-# Configure Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger("vision-attend")
+# Loguru is already configured in app.core.logging
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -52,6 +49,16 @@ app.include_router(analytics.router, prefix="/api")
 app.include_router(settings_api.router, prefix="/api")
 app.include_router(enrollment.router, prefix="/api")
 
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive
+            await websocket.receive_text()
+    except Exception:
+        manager.disconnect(websocket)
+
 
 import threading
 from app.services.face_recognition import get_face_service
@@ -68,6 +75,9 @@ def background_init():
 def on_startup():
     logger.info("🚀 Starting VisionAttend Engine...")
     try:
+        # Store main event loop for background workers
+        app.state.main_loop = asyncio.get_event_loop()
+        
         init_db()
         create_initial_admin()
         create_initial_settings()

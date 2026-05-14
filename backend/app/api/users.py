@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 from app.models.database import get_session
-from app.models.schemas import User, UserRole, Embedding
+from app.models.schemas import User, UserRole, Embedding, AttendanceLog, Camera
 from app.api.deps import get_current_user
 from app.services.face_recognition import face_service
 from typing import List
@@ -141,3 +141,34 @@ def get_face_image(path: str):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(path)
+
+
+@router.get("/public/history/{employee_id}")
+def get_public_history(employee_id: str, session: Session = Depends(get_session)):
+    """Public endpoint to lookup attendance history by Employee ID."""
+    user = session.exec(select(User).where(User.employee_id == employee_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    statement = (
+        select(AttendanceLog, Camera.name.label("camera_name"))
+        .join(Camera, AttendanceLog.camera_id == Camera.id)
+        .where(AttendanceLog.user_id == user.id)
+        .order_by(AttendanceLog.timestamp.desc())
+        .limit(50)
+    )
+    results = session.exec(statement).all()
+    
+    history = []
+    for log, camera_name in results:
+        history.append({
+            "timestamp": log.timestamp,
+            "status": log.status,
+            "camera": camera_name
+        })
+        
+    return {
+        "name": user.name,
+        "department": user.department,
+        "history": history
+    }
