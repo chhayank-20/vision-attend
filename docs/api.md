@@ -31,6 +31,7 @@ Most endpoints require a JWT token in the `Authorization` header:
 - `GET /cameras`: List configured cameras.
 - `POST /cameras`: Add a new RTSP/MJPEG stream.
 - `GET /cameras/{id}/stream`: Proxy live MJPEG stream with ROI overlays.
+- `POST /cameras/test-recognition`: Test facial recognition offline by uploading a single image.
 
 ### 📊 Analytics
 - `GET /analytics/summary`: High-level stats for dashboard.

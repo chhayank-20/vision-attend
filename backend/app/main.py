@@ -61,6 +61,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 import threading
+import asyncio
 from app.services.face_recognition import get_face_service
 
 def background_init():

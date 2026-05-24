@@ -16,6 +16,7 @@ import { UserEnrollment } from './components/UserEnrollment'
 import { CameraROIEditor } from './components/CameraROIEditor'
 import { LiveActivity } from './components/LiveActivity'
 import { ReportGenerator } from './components/ReportGenerator'
+import { TestRecognition } from './components/TestRecognition'
 import { Login } from './pages/Login'
 import { useAuthStore } from './store/useAuthStore'
 import { useQuery } from '@tanstack/react-query'
@@ -362,6 +363,7 @@ function App() {
                   />
                 </div>
               ) : (
+                <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {cameras?.map((cam) => (
                     <div
@@ -401,6 +403,11 @@ function App() {
                     </div>
                   ))}
                 </div>
+                
+                <div className="pt-8">
+                  <TestRecognition />
+                </div>
+              </>
               )}
             </div>
           )}

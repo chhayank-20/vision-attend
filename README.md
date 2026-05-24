@@ -79,6 +79,7 @@ docker compose up --build -d
 
 - **⚡ Lightning-Fast Engine**: MTCNN detection + InceptionResnetV1 embeddings.
 - **📹 Dynamic ROI Configuration**: Draw "Focus Zones" on MJPEG streams to focus recognition on specific entry points.
+- **🖼️ Offline Image Testing**: Upload an image via the UI to test the recognition model instantly without active cameras.
 - **📲 Remote Enrollment**: Mobile-friendly onboarding with admin approval queue.
 - **🛡️ Production Hardening**:
   - **Rate Limiting**: Public endpoints are protected by `slowapi`.

@@ -8,6 +8,9 @@ from app.services.camera_manager import camera_manager
 from typing import List
 import cv2
 import time
+import numpy as np
+from fastapi import UploadFile, File
+from app.services.face_recognition import get_face_service
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 
@@ -80,3 +83,38 @@ async def stream_camera(camera_id: int):
     return StreamingResponse(
         generate(), media_type="multipart/x-mixed-replace; boundary=frame"
     )
+
+
+@router.post("/test-recognition")
+async def test_recognition(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    contents = await file.read()
+    nparr = np.frombuffer(contents, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if frame is None:
+        raise HTTPException(status_code=400, detail="Invalid image")
+        
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    face_service = get_face_service()
+    embedding = face_service.get_embedding(frame_rgb, check_liveness=False)
+    
+    if embedding is None:
+        return {"recognized": False, "message": "No face detected"}
+        
+    user_id, distance = face_service.search(embedding)
+    
+    if user_id:
+        user = session.get(User, user_id)
+        return {
+            "recognized": True,
+            "user_id": user_id,
+            "name": user.name if user else "Unknown",
+            "distance": float(distance)
+        }
+    
+    return {"recognized": False, "message": "Face not recognized in database"}
