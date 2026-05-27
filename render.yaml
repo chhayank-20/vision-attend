@@ -20,7 +20,8 @@ services:
     buildCommand: |
       pip install uv
       cd backend && uv sync --frozen --no-dev
-    startCommand: cd backend && .venv/bin/gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+      uv run python -c "from facenet_pytorch import MTCNN, InceptionResnetV1; MTCNN(); InceptionResnetV1(pretrained='vggface2').eval(); print('Models cached.')"
+    startCommand: cd backend && OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 .venv/bin/gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     plan: free
 
   # 2. Frontend Static Site
