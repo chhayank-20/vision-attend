@@ -104,14 +104,13 @@ The system is configured via environment variables in `backend/.env`.
 
 ## 🏗️ Architecture
 
-VisionAttend uses a modern, decoupled architecture:
+VisionAttend uses a decoupled microservice architecture designed for scale and free-tier compatibility:
 
 ### 🧩 Components
 
-- **FastAPI Backend**: Asynchronous API layer with modular dependency injection.
-- **React Frontend**: High-performance SPA with Zustand state management.
-- **Vision Service**: Dedicated layer for PyTorch model inference and FAISS indexing.
-- **Nginx Proxy**: High-performance reverse proxy for SSL termination and static serving.
+- **Frontend Application**: High-performance React + Vite SPA, deployed on Render.
+- **Backend AI Engine**: FastAPI application utilizing PyTorch and FAISS, deployed as a Docker container on **Hugging Face Spaces** (which provides 16GB RAM for heavy AI inference).
+- **Nginx Proxy**: Local proxy for SSL termination and static serving (when running locally via Docker Compose).
 
 ### 📂 File Structure
 
