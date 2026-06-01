@@ -8,4 +8,4 @@ services:
     plan: free
     envVars:
       - key: VITE_API_URL
-        value: https://<YOUR_HUGGINGFACE_USERNAME>-<YOUR_SPACE_NAME>.hf.space
+        value: https://chhayank20-vision-attend-backend.hf.space
