@@ -6,6 +6,10 @@ services:
     buildCommand: cd frontend && pnpm install && pnpm run build
     staticPublishPath: frontend/dist
     plan: free
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: https://chhayank20-vision-attend-backend.hf.space
