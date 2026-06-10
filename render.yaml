@@ -3,7 +3,7 @@ services:
   - type: web
     name: vision-attend-frontend
     runtime: static
-    buildCommand: cd frontend && pnpm install && pnpm run build
+    buildCommand: cd frontend && pnpm install && pnpm run build && cp dist/index.html dist/404.html
     staticPublishPath: frontend/dist
     plan: free
     routes:
