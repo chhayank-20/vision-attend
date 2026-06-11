@@ -25,7 +25,11 @@ export function Login() {
       const res = await axios.post('/api/auth/login', formData)
       setAuth(res.data.user, res.data.access_token)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed')
+      if (err.response?.status === 503 || (typeof err.response?.data === 'string' && err.response?.data.includes('<html'))) {
+        setError('Backend AI server is waking up. Please wait 60 seconds and try again.')
+      } else {
+        setError(err.response?.data?.detail || 'Login failed')
+      }
     } finally {
       setLoading(false)
     }

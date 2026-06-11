@@ -54,10 +54,14 @@ export function RemoteEnroll() {
       toast.success('Enrollment request submitted!')
       setStep(3)
     } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-          'Failed to submit enrollment. Please check your ID.',
-      )
+      if (err.response?.status === 503 || (typeof err.response?.data === 'string' && err.response?.data.includes('<html'))) {
+        setError('Backend AI server is waking up. Please wait 60 seconds and try again.')
+      } else {
+        setError(
+          err.response?.data?.detail ||
+            'Failed to submit enrollment. Please check your ID.',
+        )
+      }
     } finally {
       setLoading(false)
     }
