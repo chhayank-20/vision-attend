@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import axios from 'axios'
 
 // Set global API base URL for Render deployment
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || ''
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'https://vision-attend-backend.onrender.com'
 
 const queryClient = new QueryClient()
 
